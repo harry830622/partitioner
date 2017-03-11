@@ -2,8 +2,10 @@
 
 using namespace std;
 
-Partition::Partition(const string& name, int num_nets)
-    : name_(name), num_net_cells_from_id_(num_nets, 0) {}
+Partition::Partition(const string& name, int num_nets, int num_pins)
+    : name_(name),
+      num_net_cells_from_id_(num_nets, 0),
+      bucket_list_(num_pins) {}
 
 int Partition::NumCells() const { return cell_ids_.size(); }
 
@@ -24,3 +26,15 @@ void Partition::RemoveCellId(int cell_id, const vector<int>& net_ids) {
     --num_net_cells_from_id_.at(net_id);
   }
 }
+
+void Partition::InitializeBucketList(const vector<int>& gains) {
+  for (int i = 0; i < gains.size(); ++i) {
+    if (cell_ids_.count(i) == 1) {
+      bucket_list_.AddCellId(i, gains[i]);
+    }
+  }
+}
+
+// TODO: Implement the function.
+void Partition::UpdateBucketList(const vector<int>& old_gains,
+                                 const vector<int>& new_gains) {}

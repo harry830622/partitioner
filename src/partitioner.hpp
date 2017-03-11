@@ -22,6 +22,7 @@ class Partitioner {
  private:
   void Parse(std::istream& input);
   void InitializePartitions();
+  void InitializeBucketLists();
   void ComputeCellGains();
 
   double balance_factor_;

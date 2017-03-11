@@ -4,11 +4,12 @@ using namespace std;
 
 Partitioner::Partitioner(istream& input)
     : balance_factor_(0.0),
-      left_partition_("USELESS", 0),
-      right_partition_("USELESS", 0) {
+      left_partition_("USELESS", 0, 0),
+      right_partition_("USELESS", 0, 0) {
   Parse(input);
   InitializePartitions();
   ComputeCellGains();
+  InitializeBucketLists();
 }
 
 void Partitioner::PartitionCells() {}
@@ -52,6 +53,7 @@ void Partitioner::Parse(istream& input) {
 }
 
 void Partitioner::InitializePartitions() {
+  // TODO: Compute num_pins.
   left_partition_ = Partition("LEFT", nets_.size());
   right_partition_ = Partition("RIGHT", nets_.size());
 
@@ -63,6 +65,12 @@ void Partitioner::InitializePartitions() {
     const Cell& cell = cells_.at(i);
     right_partition_.AddCellId(i, cell.NetIds());
   }
+}
+
+void Partitioner::InitializeBucketLists() {
+  // TODO: Make gain vectors.
+  left_partition_.InitializeBucketList();
+  right_partition_.InitializeBucketList();
 }
 
 void Partitioner::ComputeCellGains() {
