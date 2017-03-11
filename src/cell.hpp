@@ -3,28 +3,28 @@
 
 #include <string>
 #include <vector>
-#include <functional>
 
 class Cell {
  public:
-  Cell(int id, const std::string& name, int size = 1);
+  Cell(const std::string& name);
 
   const std::string& Name() const;
-  void ForEachNet(std::function<void(int net_id)> handler) const;
+  const std::vector<int>& NetIds() const;
+  const std::string& PartitionName() const;
   bool IsLocked() const;
+  int Gain() const;
 
-  void AddNet(int net_id);
-  void Move();
+  void AddNetId(int net_id);
+  void Lock();
   void Unlock();
   void IncrementGain();
   void DecrementGain();
 
  private:
-  int id_;
   std::string name_;
-  int size_;
   std::vector<int> net_ids_;
 
+  std::string partition_name_;
   bool is_locked_;
   int gain_;
 };

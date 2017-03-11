@@ -2,8 +2,10 @@
 
 using namespace std;
 
-Net::Net(int id, const string& name) : id_(id), name_(name) {}
+Net::Net(const string& name) : name_(name) {}
 
 const string& Net::Name() const { return name_; }
 
-void Net::AddCell(int cell_id) { cell_ids_.push_back(cell_id); }
+const vector<int>& Net::CellIds() const { return cell_ids_; }
+
+void Net::AddCellId(int cell_id) { cell_ids_.push_back(cell_id); }

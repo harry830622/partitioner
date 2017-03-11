@@ -6,14 +6,14 @@
 
 class Net {
  public:
-  Net(int id, const std::string& name);
+  Net(const std::string& name);
 
   const std::string& Name() const;
+  const std::vector<int>& CellIds() const;
 
-  void AddCell(int cell_id);
+  void AddCellId(int cell_id);
 
  private:
-  int id_;
   std::string name_;
   std::vector<int> cell_ids_;
 };
