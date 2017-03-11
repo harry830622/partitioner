@@ -8,6 +8,7 @@ int main(int argc, char* argv[]) {
   ifstream input_file(argv[1]);
 
   Partitioner partitioner(input_file);
+  partitioner.PartitionCells();
 
   return 0;
 }

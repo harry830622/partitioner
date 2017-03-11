@@ -6,6 +6,14 @@ Partitioner::Partitioner(istream& input)
     : balance_factor_(0.0),
       left_partition_("USELESS", 0),
       right_partition_("USELESS", 0) {
+  Parse(input);
+  InitializePartitions();
+  ComputeCellGains();
+}
+
+void Partitioner::PartitionCells() {}
+
+void Partitioner::Parse(istream& input) {
   simple_parser::Parser parser(input, ";");
 
   bool is_balance_factor_set = false;
@@ -41,10 +49,12 @@ Partitioner::Partitioner(istream& input)
 
     return true;
   });
+}
 
-  // Initialize partitions.
+void Partitioner::InitializePartitions() {
   left_partition_ = Partition("LEFT", nets_.size());
   right_partition_ = Partition("RIGHT", nets_.size());
+
   for (int i = 0; i < cells_.size() / 2; ++i) {
     const Cell& cell = cells_.at(i);
     left_partition_.AddCellId(i, cell.NetIds());
@@ -53,8 +63,9 @@ Partitioner::Partitioner(istream& input)
     const Cell& cell = cells_.at(i);
     right_partition_.AddCellId(i, cell.NetIds());
   }
+}
 
-  // Initialize cells' gains.
+void Partitioner::ComputeCellGains() {
   for (Cell& cell : cells_) {
     for (int net_id : cell.NetIds()) {
       int num_from_net_cells;
@@ -74,10 +85,4 @@ Partitioner::Partitioner(istream& input)
       }
     }
   }
-
-  for (const Cell& cell : cells_) {
-    cout << cell.Gain() << endl;
-  }
 }
-
-void Partitioner::PartitionCells() {}

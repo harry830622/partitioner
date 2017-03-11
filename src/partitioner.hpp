@@ -20,6 +20,10 @@ class Partitioner {
   void Output(std::ostream& output);
 
  private:
+  void Parse(std::istream& input);
+  void InitializePartitions();
+  void ComputeCellGains();
+
   double balance_factor_;
   Partition left_partition_;
   Partition right_partition_;
