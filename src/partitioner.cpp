@@ -4,11 +4,10 @@ using namespace std;
 
 Partitioner::Partitioner(istream& input)
     : balance_factor_(0.0),
-      left_partition_("USELESS", 0, 0),
-      right_partition_("USELESS", 0, 0) {
+      left_partition_("USELESS", 0, 0, 0),
+      right_partition_("USELESS", 0, 0, 0) {
   Parse(input);
   InitializePartitions();
-  ComputeCellGains();
   InitializeBucketLists();
 }
 
@@ -42,8 +41,8 @@ void Partitioner::Parse(istream& input) {
             cells_.push_back(Cell(cell_name));
             cell_id_from_name_.insert({cell_name, cell_id});
           }
-          nets_.at(net_id).AddCellId(cell_id);
-          cells_.at(cell_id).AddNetId(net_id);
+          nets_.at(net_id).ConnectCell(cell_id);
+          cells_.at(cell_id).ConnectNet(net_id);
         }
       }
     }
@@ -53,32 +52,43 @@ void Partitioner::Parse(istream& input) {
 }
 
 void Partitioner::InitializePartitions() {
-  // TODO: Compute num_pins.
-  left_partition_ = Partition("LEFT", nets_.size());
-  right_partition_ = Partition("RIGHT", nets_.size());
-
-  for (int i = 0; i < cells_.size() / 2; ++i) {
-    const Cell& cell = cells_.at(i);
-    left_partition_.AddCellId(i, cell.NetIds());
+  int num_pins = 0;
+  for (const Net& net : nets_) {
+    num_pins += net.CellIds().size();
   }
-  for (int i = cells_.size() / 2; i < cells_.size(); ++i) {
+
+  left_partition_ = Partition("LEFT", cells_.size(), nets_.size(), num_pins);
+  right_partition_ = Partition("RIGHT", cells_.size(), nets_.size(), num_pins);
+
+  int num_cells = cells_.size();
+  for (int i = 0; i < num_cells; ++i) {
     const Cell& cell = cells_.at(i);
-    right_partition_.AddCellId(i, cell.NetIds());
+    if (i < num_cells / 2) {
+      left_partition_.AddCell(i, cell.NetIds());
+    } else {
+      right_partition_.AddCell(i, cell.NetIds());
+    }
   }
 }
 
 void Partitioner::InitializeBucketLists() {
-  // TODO: Make gain vectors.
-  left_partition_.InitializeBucketList();
-  right_partition_.InitializeBucketList();
+  InitializeCellGains();
+
+  vector<int> gains;
+  for (const Cell& cell : cells_) {
+    gains.push_back(cell.Gain());
+  }
+  left_partition_.InitializeBucketList(gains);
+  right_partition_.InitializeBucketList(gains);
 }
 
-void Partitioner::ComputeCellGains() {
-  for (Cell& cell : cells_) {
+void Partitioner::InitializeCellGains() {
+  for (int i = 0; i < cells_.size(); ++i) {
+    Cell& cell = cells_[i];
     for (int net_id : cell.NetIds()) {
       int num_from_net_cells;
       int num_to_net_cells;
-      if (cell.PartitionName() == "LEFT") {
+      if (left_partition_.HasCell(i)) {
         num_from_net_cells = left_partition_.NumNetCells(net_id);
         num_to_net_cells = right_partition_.NumNetCells(net_id);
       } else {

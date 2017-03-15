@@ -8,13 +8,14 @@
 
 class Partition {
  public:
-  Partition(const std::string& name, int num_nets, int num_pins);
+  Partition(const std::string& name, int num_cells, int num_nets, int num_pins);
 
   int NumCells() const;
   int NumNetCells(int net_id) const;
+  bool HasCell(int cell_id) const;
 
-  void AddCellId(int cell_id, const std::vector<int>& net_ids);
-  void RemoveCellId(int cell_id, const std::vector<int>& net_ids);
+  void AddCell(int cell_id, const std::vector<int>& net_ids);
+  void RemoveCell(int cell_id, const std::vector<int>& net_ids);
   void InitializeBucketList(const std::vector<int>& gains);
   void UpdateBucketList(const std::vector<int>& old_gains,
                         const std::vector<int>& new_gains);

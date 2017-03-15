@@ -11,7 +11,7 @@ class Net {
   const std::string& Name() const;
   const std::vector<int>& CellIds() const;
 
-  void AddCellId(int cell_id);
+  void ConnectCell(int cell_id);
 
  private:
   std::string name_;

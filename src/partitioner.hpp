@@ -12,9 +12,6 @@ class Partitioner {
  public:
   Partitioner(std::istream& input);
 
-  const Cell& CellById(int id) const;
-  const Net& NetById(int id) const;
-
   void PartitionCells();
 
   void Output(std::ostream& output);
@@ -23,7 +20,7 @@ class Partitioner {
   void Parse(std::istream& input);
   void InitializePartitions();
   void InitializeBucketLists();
-  void ComputeCellGains();
+  void InitializeCellGains();
 
   double balance_factor_;
   Partition left_partition_;

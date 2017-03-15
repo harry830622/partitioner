@@ -8,4 +8,4 @@ const string& Net::Name() const { return name_; }
 
 const vector<int>& Net::CellIds() const { return cell_ids_; }
 
-void Net::AddCellId(int cell_id) { cell_ids_.push_back(cell_id); }
+void Net::ConnectCell(int cell_id) { cell_ids_.push_back(cell_id); }
