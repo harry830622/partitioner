@@ -2,10 +2,7 @@
 
 using namespace std;
 
-Partitioner::Partitioner(istream& input)
-    : balance_factor_(0.0),
-      left_partition_("USELESS", 0, 0, 0),
-      right_partition_("USELESS", 0, 0, 0) {
+Partitioner::Partitioner(istream& input) : balance_factor_(0.0) {
   Parse(input);
   InitializePartitions();
   InitializeBucketLists();
@@ -52,48 +49,57 @@ void Partitioner::Parse(istream& input) {
 }
 
 void Partitioner::InitializePartitions() {
-  int num_pins = 0;
-  for (const Net& net : nets_) {
-    num_pins += net.CellIds().size();
-  }
-
-  left_partition_ = Partition("LEFT", cells_.size(), nets_.size(), num_pins);
-  right_partition_ = Partition("RIGHT", cells_.size(), nets_.size(), num_pins);
-
-  int num_cells = cells_.size();
-  for (int i = 0; i < num_cells; ++i) {
-    const Cell& cell = cells_.at(i);
-    if (i < num_cells / 2) {
-      left_partition_.AddCell(i, cell.NetIds());
-    } else {
-      right_partition_.AddCell(i, cell.NetIds());
+  const int num_cells = cells_.size();
+  const int num_nets = nets_.size();
+  const int num_pins = [&]() {
+    int result = 0;
+    for (const Net& net : nets_) {
+      result += net.CellIds().size();
     }
+
+    return result;
+  }();
+
+  unordered_set<int> left_partition_cell_ids;
+  unordered_map<int, vector<int>> left_partition_net_ids_from_cell_id;
+  for (int i = 0; i < num_cells / 2; ++i) {
+    const Cell& cell = cells_.at(i);
+
+    left_partition_cell_ids.insert(i);
+    left_partition_net_ids_from_cell_id.insert({i, cell.NetIds()});
   }
+  partitions_.push_back(Partition("LEFT", num_cells, num_nets, num_pins,
+                                  left_partition_cell_ids,
+                                  left_partition_net_ids_from_cell_id));
+
+  unordered_set<int> right_partition_cell_ids;
+  unordered_map<int, vector<int>> right_partition_net_ids_from_cell_id;
+  for (int i = num_cells / 2; i < num_cells; ++i) {
+    const Cell& cell = cells_.at(i);
+
+    right_partition_cell_ids.insert(i);
+    right_partition_net_ids_from_cell_id.insert({i, cell.NetIds()});
+  }
+  partitions_.push_back(Partition("RIGHT", num_cells, num_nets, num_pins,
+                                  right_partition_cell_ids,
+                                  right_partition_net_ids_from_cell_id));
 }
 
 void Partitioner::InitializeBucketLists() {
-  InitializeCellGains();
+  Partition& left_partition = partitions_[0];
+  Partition& right_partition = partitions_[1];
 
-  vector<int> gains;
-  for (const Cell& cell : cells_) {
-    gains.push_back(cell.Gain());
-  }
-  left_partition_.InitializeBucketList(gains);
-  right_partition_.InitializeBucketList(gains);
-}
-
-void Partitioner::InitializeCellGains() {
   for (int i = 0; i < cells_.size(); ++i) {
     Cell& cell = cells_[i];
     for (int net_id : cell.NetIds()) {
       int num_from_net_cells;
       int num_to_net_cells;
-      if (left_partition_.HasCell(i)) {
-        num_from_net_cells = left_partition_.NumNetCells(net_id);
-        num_to_net_cells = right_partition_.NumNetCells(net_id);
+      if (left_partition.HasCell(i)) {
+        num_from_net_cells = left_partition.NumNetCells(net_id);
+        num_to_net_cells = right_partition.NumNetCells(net_id);
       } else {
-        num_from_net_cells = right_partition_.NumNetCells(net_id);
-        num_to_net_cells = left_partition_.NumNetCells(net_id);
+        num_from_net_cells = right_partition.NumNetCells(net_id);
+        num_to_net_cells = left_partition.NumNetCells(net_id);
       }
 
       if (num_from_net_cells == 1) {
@@ -103,4 +109,11 @@ void Partitioner::InitializeCellGains() {
       }
     }
   }
+
+  vector<int> gains;
+  for (const Cell& cell : cells_) {
+    gains.push_back(cell.Gain());
+  }
+  left_partition.InitializeBucketList(gains);
+  right_partition.InitializeBucketList(gains);
 }

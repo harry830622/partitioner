@@ -20,11 +20,9 @@ class Partitioner {
   void Parse(std::istream& input);
   void InitializePartitions();
   void InitializeBucketLists();
-  void InitializeCellGains();
 
   double balance_factor_;
-  Partition left_partition_;
-  Partition right_partition_;
+  std::vector<Partition> partitions_;
   std::vector<Cell> cells_;
   std::vector<Net> nets_;
   std::unordered_map<std::string, int> cell_id_from_name_;
