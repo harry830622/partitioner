@@ -6,18 +6,25 @@
 
 class BucketList {
  public:
-   BucketList(int num_cells, int num_pins);
+  BucketList(int num_cells, int num_pins);
 
-   const std::list<int>& CellIds() const;
+  int MaxGain() const;
+  int MaxGainCellId() const;
 
-   void AddCell(int cell_id, int gain);
-   void RemoveCell(int cell_id, int gain);
+  void FreeAllCells();
+  void InsertCell(int cell_id, int gain, bool is_locked);
+  void RemoveCell(int cell_id, int gain, bool is_locked);
 
  private:
-   int offset_;
-   int max_gain_;
-   std::vector<std::list<int>> cell_ids_from_gain_;
-   std::vector<std::list<int>::iterator> list_iterator_from_cell_id_;
+  const std::list<int>& CellIdsFromGain(int gain) const;
+  std::list<int>& CellIdsFromGain(int gain);
+
+  int offset_;
+  int size_;
+  int max_gain_;
+  std::vector<std::list<int>> cell_ids_from_offsetted_gain_;
+  std::vector<int> num_free_cells_from_offsetted_gain_;
+  std::vector<std::list<int>::iterator> list_iterator_from_cell_id_;
 };
 
 #endif
