@@ -8,7 +8,7 @@ int main(int argc, char* argv[]) {
   ifstream input_file(argv[1]);
 
   Database database(input_file);
-  database.Print();
+  /* database.Print(); */
 
   return 0;
 }
