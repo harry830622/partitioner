@@ -37,6 +37,9 @@ bool Partition::AreAllCellsLocked() const {
   return bucket_list_.AreAllCellsLocked();
 }
 
+const vector<int>& Partition::CellGains() const {
+}
+
 void Partition::AddCell(int cell_id, const vector<int>& net_ids, int gain,
                         bool is_locked) {
   cell_ids_.insert(cell_id);

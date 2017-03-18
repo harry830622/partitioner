@@ -21,6 +21,7 @@ class Cell {
   void Unlock();
   void IncrementGain();
   void DecrementGain();
+  void SetGain(int gain);
 
  private:
   std::string name_;

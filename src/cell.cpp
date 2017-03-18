@@ -27,3 +27,5 @@ void Cell::Unlock() { is_locked_ = false; }
 void Cell::IncrementGain() { ++gain_; }
 
 void Cell::DecrementGain() { --gain_; }
+
+void Cell::SetGain(int gain) { gain_ = gain; }

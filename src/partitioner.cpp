@@ -183,13 +183,15 @@ void Partitioner::PartitionCells() {
       partitions_snapshots.push_back(partitions_);
     }
 
+    int max_i = -1;
     for (int i = 0; i < partial_sums.size(); ++i) {
       if (partial_sums[i] > max_partial_sum) {
-        max_partial_sum = partial_sums[i];
-        best_partitions_ = partitions_snapshots.at(i);
-        partitions_ = best_partitions_;
+        max_i = i;
       }
     }
+    max_partial_sum = partial_sums.at(max_i);
+    best_partitions_ = partitions_snapshots.at(max_i);
+    partitions_ = best_partitions_;
 
     for (Cell& cell : cells_) {
       cell.Unlock();
