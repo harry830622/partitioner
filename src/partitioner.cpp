@@ -192,6 +192,12 @@ void Partitioner::PartitionCells() {
     max_partial_sum = partial_sums.at(max_i);
     best_partitions_ = partitions_snapshots.at(max_i);
     partitions_ = best_partitions_;
+    for (Partition& partition : partitions_) {
+      const auto& cell_gains = partition.CellGains();
+      for (int i = 0; i < cell_gains.size(); ++i) {
+        cells_.at(i).SetGain(cell_gains[i]);
+      }
+    }
 
     for (Cell& cell : cells_) {
       cell.Unlock();

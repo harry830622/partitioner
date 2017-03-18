@@ -11,6 +11,7 @@ Partition::Partition(
     : name_(name),
       cell_ids_(cell_ids),
       num_net_cells_from_net_id_(num_nets, 0),
+      cell_gains_(num_cells, 0),
       bucket_list_(num_cells, num_pins) {
   for (int cell_id : cell_ids) {
     for (int net_id : net_ids_from_cell_id.at(cell_id)) {
@@ -37,8 +38,7 @@ bool Partition::AreAllCellsLocked() const {
   return bucket_list_.AreAllCellsLocked();
 }
 
-const vector<int>& Partition::CellGains() const {
-}
+const vector<int>& Partition::CellGains() const { return cell_gains_; }
 
 void Partition::AddCell(int cell_id, const vector<int>& net_ids, int gain,
                         bool is_locked) {
@@ -46,6 +46,8 @@ void Partition::AddCell(int cell_id, const vector<int>& net_ids, int gain,
   for (int net_id : net_ids) {
     ++num_net_cells_from_net_id_.at(net_id);
   }
+
+  cell_gains_.at(cell_id) = gain;
 
   bucket_list_.InsertCell(cell_id, gain, is_locked);
 }
@@ -56,6 +58,8 @@ void Partition::RemoveCell(int cell_id, const vector<int>& net_ids, int gain,
   for (int net_id : net_ids) {
     --num_net_cells_from_net_id_.at(net_id);
   }
+
+  cell_gains_.at(cell_id) = gain;
 
   bucket_list_.RemoveCell(cell_id, gain, is_locked);
 }

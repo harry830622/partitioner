@@ -35,6 +35,7 @@ class Partition {
 
   std::unordered_set<int> cell_ids_;
   std::vector<int> num_net_cells_from_net_id_;
+  std::vector<int> cell_gains_;
   BucketList bucket_list_;
 };
 

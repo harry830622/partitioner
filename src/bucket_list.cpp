@@ -45,9 +45,6 @@ void BucketList::InsertCell(int cell_id, int gain, bool is_locked) {
     cell_ids.push_back(cell_id);
     list_iterator_from_cell_id_.at(cell_id) = prev(cell_ids.end());
   }
-
-  cout << "Max gain: " << max_gain_ << " "
-       << num_free_cells_from_offsetted_gain_.at(max_gain_ + offset_) << endl;
 }
 
 void BucketList::RemoveCell(int cell_id, int gain, bool is_locked) {
@@ -80,9 +77,6 @@ void BucketList::RemoveCell(int cell_id, int gain, bool is_locked) {
       }
     }
   }
-
-  cout << "Max gain: " << max_gain_ << " "
-       << num_free_cells_from_offsetted_gain_.at(max_gain_ + offset_) << endl;
 }
 
 const list<int>& BucketList::CellIdsFromGain(int gain) const {
