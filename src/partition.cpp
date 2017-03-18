@@ -1,5 +1,7 @@
 #include "./partition.hpp"
 
+#include <iostream>
+
 using namespace std;
 
 Partition::Partition(
@@ -17,7 +19,7 @@ Partition::Partition(
   }
 }
 
-int Partition::NumCells() const { return cell_ids_.size(); }
+const unordered_set<int>& Partition::CellIds() const { return cell_ids_; }
 
 int Partition::NumNetCells(int net_id) const {
   return num_net_cells_from_net_id_.at(net_id);
@@ -31,18 +33,24 @@ int Partition::MaxGain() const { return bucket_list_.MaxGain(); }
 
 int Partition::MaxGainCellId() const { return bucket_list_.MaxGainCellId(); }
 
-void Partition::AddCell(int cell_id, const vector<int>& net_ids) {
+void Partition::AddCell(int cell_id, const vector<int>& net_ids, int gain,
+                        bool is_locked) {
   cell_ids_.insert(cell_id);
   for (int net_id : net_ids) {
     ++num_net_cells_from_net_id_.at(net_id);
   }
+
+  bucket_list_.InsertCell(cell_id, gain, is_locked);
 }
 
-void Partition::RemoveCell(int cell_id, const vector<int>& net_ids) {
+void Partition::RemoveCell(int cell_id, const vector<int>& net_ids, int gain,
+                           bool is_locked) {
   cell_ids_.erase(cell_id);
   for (int net_id : net_ids) {
     --num_net_cells_from_net_id_.at(net_id);
   }
+
+  bucket_list_.RemoveCell(cell_id, gain, is_locked);
 }
 
 void Partition::InitializeBucketList(const vector<int>& gains) {
@@ -53,13 +61,8 @@ void Partition::InitializeBucketList(const vector<int>& gains) {
   }
 }
 
-void Partition::UpdateBucketList(const vector<int>& old_gains,
-                                 const vector<int>& new_gains,
-                                 const vector<bool>& is_lockeds) {
-  for (int i = 0; i < old_gains.size(); ++i) {
-    if (cell_ids_.count(i) == 1) {
-      bucket_list_.RemoveCell(i, old_gains.at(i), is_lockeds.at(i));
-      bucket_list_.InsertCell(i, new_gains.at(i), is_lockeds.at(i));
-    }
-  }
+void Partition::UpdateBucketList(int cell_id, int old_gain, int new_gain,
+                                 bool is_locked) {
+  bucket_list_.RemoveCell(cell_id, old_gain, is_locked);
+  bucket_list_.InsertCell(cell_id, new_gain, is_locked);
 }

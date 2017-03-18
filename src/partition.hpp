@@ -14,18 +14,19 @@ class Partition {
       const std::unordered_set<int>& cell_ids,
       const std::unordered_map<int, std::vector<int>>& net_ids_from_cell_id);
 
-  int NumCells() const;
+  const std::unordered_set<int>& CellIds() const;
   int NumNetCells(int net_id) const;
   bool HasCell(int cell_id) const;
   int MaxGain() const;
   int MaxGainCellId() const;
 
-  void AddCell(int cell_id, const std::vector<int>& net_ids);
-  void RemoveCell(int cell_id, const std::vector<int>& net_ids);
+  void AddCell(int cell_id, const std::vector<int>& net_ids, int gain,
+               bool is_locked);
+  void RemoveCell(int cell_id, const std::vector<int>& net_ids, int gain,
+                  bool is_locked);
   void InitializeBucketList(const std::vector<int>& gains);
-  void UpdateBucketList(const std::vector<int>& old_gains,
-                        const std::vector<int>& new_gains,
-                        const std::vector<bool>& is_lockeds);
+  void UpdateBucketList(int cell_id, int old_gain, int new_gain,
+                        bool is_locked);
 
  private:
   std::string name_;

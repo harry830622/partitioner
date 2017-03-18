@@ -17,6 +17,10 @@ class Partitioner {
   void Output(std::ostream& output);
 
  private:
+  int ComputeNumPins() const;
+  bool ArePartitionsBalancedAfterMove(const Partition& from,
+                                      const Partition& to) const;
+
   void Parse(std::istream& input);
   void InitializePartitions();
   void InitializeBucketLists();
@@ -27,6 +31,8 @@ class Partitioner {
   std::vector<Net> nets_;
   std::unordered_map<std::string, int> cell_id_from_name_;
   std::unordered_map<std::string, int> net_id_from_name_;
+
+  std::vector<Partition> best_partitions_;
 };
 
 #endif

@@ -10,6 +10,7 @@ class BucketList {
 
   int MaxGain() const;
   int MaxGainCellId() const;
+  bool AreAllCellsLocked() const;
 
   void FreeAllCells();
   void InsertCell(int cell_id, int gain, bool is_locked);
@@ -23,8 +24,9 @@ class BucketList {
   int size_;
   int max_gain_;
   std::vector<std::list<int>> cell_ids_from_offsetted_gain_;
-  std::vector<int> num_free_cells_from_offsetted_gain_;
   std::vector<std::list<int>::iterator> list_iterator_from_cell_id_;
+
+  std::vector<int> num_free_cells_from_offsetted_gain_;
 };
 
 #endif

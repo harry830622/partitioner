@@ -5,15 +5,18 @@ using namespace std;
 BucketList::BucketList(int num_cells, int num_pins)
     : offset_(num_pins),
       size_(num_pins * 2 + 1),
+      max_gain_(-1 * offset_ - 1),
       cell_ids_from_offsetted_gain_(size_),
-      num_free_cells_from_offsetted_gain_(size_, 0),
-      list_iterator_from_cell_id_(num_cells) {}
+      list_iterator_from_cell_id_(num_cells),
+      num_free_cells_from_offsetted_gain_(size_, 0) {}
 
 int BucketList::MaxGain() const { return max_gain_; }
 
 int BucketList::MaxGainCellId() const {
   return CellIdsFromGain(max_gain_).front();
 }
+
+bool BucketList::AreAllCellsLocked() const { return max_gain_ < -1 * offset_; }
 
 void BucketList::FreeAllCells() {
   for (int i = 0; i < cell_ids_from_offsetted_gain_.size(); ++i) {
@@ -51,11 +54,18 @@ void BucketList::RemoveCell(int cell_id, int gain, bool is_locked) {
 
     if (gain == max_gain_ &&
         num_free_cells_from_offsetted_gain_.at(gain + offset_) == 0) {
+      bool are_all_cells_locked = true;
+
       for (int i = max_gain_ - 1; i >= -1 * offset_; --i) {
         if (num_free_cells_from_offsetted_gain_.at(i + offset_) != 0) {
           max_gain_ = i;
+          are_all_cells_locked = false;
           break;
         }
+      }
+
+      if (are_all_cells_locked) {
+        max_gain_ = -1 * offset_ - 1;
       }
     }
   }
