@@ -1,5 +1,7 @@
 #include "./bucket_list.hpp"
 
+#include <iostream>
+
 using namespace std;
 
 BucketList::BucketList(int num_cells, int num_pins)
@@ -28,6 +30,8 @@ void BucketList::FreeAllCells() {
 void BucketList::InsertCell(int cell_id, int gain, bool is_locked) {
   auto& cell_ids = CellIdsFromGain(gain);
 
+  cout << "Inserting: " << cell_id << " " << gain << " " << is_locked << endl;
+
   if (!is_locked) {
     cell_ids.push_front(cell_id);
     list_iterator_from_cell_id_.at(cell_id) = cell_ids.begin();
@@ -41,12 +45,19 @@ void BucketList::InsertCell(int cell_id, int gain, bool is_locked) {
     cell_ids.push_back(cell_id);
     list_iterator_from_cell_id_.at(cell_id) = prev(cell_ids.end());
   }
+
+  cout << "Max gain: " << max_gain_ << " "
+       << num_free_cells_from_offsetted_gain_.at(max_gain_ + offset_) << endl;
 }
 
 void BucketList::RemoveCell(int cell_id, int gain, bool is_locked) {
   auto& cell_ids = CellIdsFromGain(gain);
 
   auto& it = list_iterator_from_cell_id_.at(cell_id);
+
+  cout << "Removing: " << cell_id << " " << gain << " " << is_locked << endl;
+  cout << "  " << *it << endl;
+
   cell_ids.erase(it);
 
   if (!is_locked) {
@@ -69,6 +80,9 @@ void BucketList::RemoveCell(int cell_id, int gain, bool is_locked) {
       }
     }
   }
+
+  cout << "Max gain: " << max_gain_ << " "
+       << num_free_cells_from_offsetted_gain_.at(max_gain_ + offset_) << endl;
 }
 
 const list<int>& BucketList::CellIdsFromGain(int gain) const {

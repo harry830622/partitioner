@@ -15,25 +15,29 @@ void Partitioner::PartitionCells() {
   const int num_cells = cells_.size();
   const int num_pins = ComputeNumPins();
 
+  cout << "Start partitioning" << endl;
+
   int max_partial_sum;
   do {
-    Partition& left_partition = best_partitions_[0];
-    Partition& right_partition = best_partitions_[1];
+    cout << "Begin iteration" << endl;
+
+    Partition& left_partition = partitions_[0];
+    Partition& right_partition = partitions_[1];
 
     vector<vector<Partition>> partitions_snapshots;
     vector<int> partial_sums;
     max_partial_sum = -1 * num_pins - 1;
 
     for (int i = 0; i < num_cells - 1; ++i) {
-      bool is_cell_from_left_partition = true;
       int cell_id = -1;
 
-      if (left_partition.MaxGain() > right_partition.MaxGain() &&
-          ArePartitionsBalancedAfterMove(left_partition, right_partition)) {
-        cell_id = left_partition.MaxGainCellId();
-      }
+      cout << "Left max: " << left_partition.MaxGain()
+           << " right max: " << right_partition.MaxGain() << endl;
 
-      if (cell_id == -1) {
+      bool is_cell_from_left_partition = true;
+      if (ArePartitionsBalancedAfterMove(left_partition, right_partition)) {
+        cell_id = left_partition.MaxGainCellId();
+      } else {
         is_cell_from_left_partition = false;
         cell_id = right_partition.MaxGainCellId();
       }
@@ -44,7 +48,10 @@ void Partitioner::PartitionCells() {
           is_cell_from_left_partition ? right_partition : left_partition;
 
       Cell& cell = cells_.at(cell_id);
-      int old_cell_gain = cell.Gain();
+      int cell_gain = cell.Gain();
+
+      cout << "Select a max gain cell: " << cell_id << " " << cell.Gain() << " "
+           << cell.IsLocked() << endl;
 
       for (int net_id : cell.NetIds()) {
         const Net& net = nets_.at(net_id);
@@ -53,8 +60,17 @@ void Partitioner::PartitionCells() {
         int num_to_partition_net_cells = to_partition.NumNetCells(net_id);
 
         if (num_from_partition_net_cells == 1) {
+          cout << "I am the only one on my side" << endl;
+
+          int old_cell_gain = cell.Gain();
           cell.DecrementGain();
-        } else if (num_to_partition_net_cells == 0) {
+          from_partition.UpdateBucketList(cell_id, old_cell_gain, cell.Gain(),
+                                          cell.IsLocked());
+        }
+
+        if (num_to_partition_net_cells == 0) {
+          cout << "There are no cell on the other side" << endl;
+
           for (int net_cell_id : net.CellIds()) {
             Cell& net_cell = cells_.at(net_cell_id);
 
@@ -72,6 +88,8 @@ void Partitioner::PartitionCells() {
             }
           }
         } else if (num_to_partition_net_cells == 1) {
+          cout << "There is only one cell on the other side" << endl;
+
           for (int net_cell_id : net.CellIds()) {
             if (to_partition.HasCell(net_cell_id)) {
               Cell& net_cell = cells_.at(net_cell_id);
@@ -88,14 +106,15 @@ void Partitioner::PartitionCells() {
         }
       }
 
-      cell.Print();
-      cout << old_cell_gain << endl;
+      cout << "Ready to move the cell: " << cell_id << " " << cell.Gain()
+           << " " << cell.IsLocked() << endl;
 
-      from_partition.RemoveCell(cell_id, cell.NetIds(), old_cell_gain, false);
+      from_partition.RemoveCell(cell_id, cell.NetIds(), cell.Gain(), false);
       cell.Lock();
-      from_partition.AddCell(cell_id, cell.NetIds(), cell.Gain(), true);
+      to_partition.AddCell(cell_id, cell.NetIds(), cell.Gain(), true);
 
-      cell.Print();
+      cout << "Cell moved: " << cell_id << " " << cell.Gain() << " "
+           << cell.IsLocked() << endl;
 
       for (int net_id : cell.NetIds()) {
         const Net& net = nets_.at(net_id);
@@ -104,8 +123,17 @@ void Partitioner::PartitionCells() {
         int num_to_partition_net_cells = to_partition.NumNetCells(net_id);
 
         if (num_to_partition_net_cells == 1) {
+          cout << "I am the only one on my side" << endl;
+
+          int old_cell_gain = cell.Gain();
           cell.IncrementGain();
-        } else if (num_from_partition_net_cells == 0) {
+          to_partition.UpdateBucketList(cell_id, old_cell_gain, cell.Gain(),
+                                        cell.IsLocked());
+        }
+
+        if (num_from_partition_net_cells == 0) {
+          cout << "There are no cell on the other side" << endl;
+
           for (int net_cell_id : net.CellIds()) {
             Cell& net_cell = cells_.at(net_cell_id);
 
@@ -123,6 +151,8 @@ void Partitioner::PartitionCells() {
             }
           }
         } else if (num_from_partition_net_cells == 1) {
+          cout << "There is only one cell on the other side" << endl;
+
           for (int net_cell_id : net.CellIds()) {
             if (from_partition.HasCell(net_cell_id)) {
               Cell& net_cell = cells_.at(net_cell_id);
@@ -130,9 +160,9 @@ void Partitioner::PartitionCells() {
               int old_net_cell_gain = net_cell.Gain();
               net_cell.IncrementGain();
 
-              to_partition.UpdateBucketList(net_cell_id, old_net_cell_gain,
-                                            net_cell.Gain(),
-                                            net_cell.IsLocked());
+              from_partition.UpdateBucketList(net_cell_id, old_net_cell_gain,
+                                              net_cell.Gain(),
+                                              net_cell.IsLocked());
               break;
             }
           }
@@ -140,23 +170,24 @@ void Partitioner::PartitionCells() {
       }
 
       if (partial_sums.empty()) {
-        partial_sums.push_back(old_cell_gain);
+        partial_sums.push_back(cell_gain);
       } else {
-        partial_sums.push_back(partial_sums.back() + old_cell_gain);
+        partial_sums.push_back(partial_sums.back() + cell_gain);
       }
 
       partitions_snapshots.push_back(partitions_);
-
-      for (Cell& cell : cells_) {
-        cell.Unlock();
-      }
     }
 
     for (int i = 0; i < partial_sums.size(); ++i) {
       if (partial_sums[i] > max_partial_sum) {
         max_partial_sum = partial_sums[i];
         best_partitions_ = partitions_snapshots.at(i);
+        partitions_ = best_partitions_;
       }
+    }
+
+    for (Cell& cell : cells_) {
+      cell.Unlock();
     }
   } while (max_partial_sum > 0);
 }
@@ -172,8 +203,12 @@ int Partitioner::ComputeNumPins() const {
 
 bool Partitioner::ArePartitionsBalancedAfterMove(const Partition& from,
                                                  const Partition& to) const {
-  if (from.CellIds().size() - 1 <= (1 - balance_factor_) / 2 ||
-      to.CellIds().size() + 1 >= (1 + balance_factor_) / 2) {
+  int num_from_partition_cells = from.CellIds().size();
+  int num_to_partition_cells = to.CellIds().size();
+  int num_cells = num_from_partition_cells + num_to_partition_cells;
+
+  if (num_from_partition_cells - 1 <= (1 - balance_factor_) / 2 * num_cells ||
+      num_to_partition_cells + 1 >= (1 + balance_factor_) / 2 * num_cells) {
     return false;
   }
 
