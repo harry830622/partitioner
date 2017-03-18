@@ -19,6 +19,7 @@ class Partition {
   bool HasCell(int cell_id) const;
   int MaxGain() const;
   int MaxGainCellId() const;
+  bool AreAllCellsLocked() const;
 
   void AddCell(int cell_id, const std::vector<int>& net_ids, int gain,
                bool is_locked);

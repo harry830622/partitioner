@@ -33,6 +33,10 @@ int Partition::MaxGain() const { return bucket_list_.MaxGain(); }
 
 int Partition::MaxGainCellId() const { return bucket_list_.MaxGainCellId(); }
 
+bool Partition::AreAllCellsLocked() const {
+  return bucket_list_.AreAllCellsLocked();
+}
+
 void Partition::AddCell(int cell_id, const vector<int>& net_ids, int gain,
                         bool is_locked) {
   cell_ids_.insert(cell_id);

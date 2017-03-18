@@ -35,9 +35,14 @@ void Partitioner::PartitionCells() {
            << " right max: " << right_partition.MaxGain() << endl;
 
       bool is_cell_from_left_partition = true;
-      if (ArePartitionsBalancedAfterMove(left_partition, right_partition)) {
+      if (ArePartitionsBalancedAfterMove(left_partition, right_partition) &&
+          !left_partition.AreAllCellsLocked()) {
         cell_id = left_partition.MaxGainCellId();
       } else {
+        if (right_partition.AreAllCellsLocked()) {
+          break;
+        }
+
         is_cell_from_left_partition = false;
         cell_id = right_partition.MaxGainCellId();
       }
