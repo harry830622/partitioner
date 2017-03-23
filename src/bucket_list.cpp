@@ -7,24 +7,18 @@ using namespace std;
 int BucketList::invalid_gain_ = numeric_limits<int>::min();
 list<int> BucketList::dummy_list_;
 
-BucketList::BucketList(int num_all_cells, int num_all_pins,
-                       const vector<int>& cell_ids)
+BucketList::BucketList(int num_all_cells, int num_all_nets, int num_all_pins)
     : offset_(num_all_pins),
       size_(num_all_pins * 2 + 1),
       max_gain_(invalid_gain_),
       cell_ids_from_offsetted_gain_(size_),
       num_free_cells_from_offsetted_gain_(size_, 0),
       gain_from_cell_id_(num_all_cells, invalid_gain_),
-      iterator_from_cell_id_(num_all_cells, dummy_list_.end()) {
-  const int initial_gain = 0;
-  for (int cell_id : cell_ids) {
-    InsertCell(cell_id, initial_gain, false);
-  }
-  max_gain_ = initial_gain;
-}
+      iterator_from_cell_id_(num_all_cells, dummy_list_.end()),
+      num_net_cells_from_net_id_(num_all_nets) {}
 
 bool BucketList::HasCell(int cell_id) const {
-  return iterator_from_cell_id_.at(cell_id) != dummy_list_.end();
+  return gain_from_cell_id_.at(cell_id) != invalid_gain_;
 }
 
 bool BucketList::AreAllCellsLocked() const {
@@ -42,6 +36,10 @@ int BucketList::NumCells() const {
   return num_cells;
 }
 
+int BucketList::NumNetCells(int net_id) const {
+  return num_net_cells_from_net_id_.at(net_id);
+}
+
 int BucketList::Gain(int cell_id) const {
   return gain_from_cell_id_.at(cell_id);
 }
@@ -52,7 +50,8 @@ int BucketList::MaxGainCellId() const {
   return CellIdsFromGain(max_gain_).front();
 }
 
-void BucketList::InsertCell(int cell_id, int gain, bool is_locked) {
+void BucketList::InsertCell(int cell_id, const vector<int>& net_ids, int gain,
+                            bool is_locked) {
   auto& cell_ids = CellIdsFromGain(gain);
   if (!is_locked) {
     cell_ids.push_front(cell_id);
@@ -63,9 +62,13 @@ void BucketList::InsertCell(int cell_id, int gain, bool is_locked) {
     iterator_from_cell_id_.at(cell_id) = prev(cell_ids.end());
   }
   gain_from_cell_id_.at(cell_id) = gain;
+  for (int net_id : net_ids) {
+    ++num_net_cells_from_net_id_.at(net_id);
+  }
 }
 
-void BucketList::DeleteCell(int cell_id, bool is_locked) {
+void BucketList::DeleteCell(int cell_id, const vector<int>& net_ids,
+                            bool is_locked) {
   auto& it = iterator_from_cell_id_.at(cell_id);
   const int gain = gain_from_cell_id_.at(cell_id);
   CellIdsFromGain(gain).erase(it);
@@ -84,11 +87,14 @@ void BucketList::DeleteCell(int cell_id, bool is_locked) {
     }
   }
   gain_from_cell_id_.at(cell_id) = invalid_gain_;
+  for (int net_id : net_ids) {
+    --num_net_cells_from_net_id_.at(net_id);
+  }
 }
 
 void BucketList::UpdateCell(int cell_id, int new_gain, bool is_locked) {
-  DeleteCell(cell_id, is_locked);
-  InsertCell(cell_id, new_gain, is_locked);
+  DeleteCell(cell_id, {}, is_locked);
+  InsertCell(cell_id, {}, new_gain, is_locked);
 }
 
 const list<int>& BucketList::CellIdsFromGain(int gain) const {

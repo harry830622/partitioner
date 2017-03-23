@@ -13,6 +13,10 @@ class Database {
   void Print(std::ostream& os = std::cout, int num_spaces = 0) const;
 
   double BalanceFactor() const;
+
+  int NumCells() const;
+  int NumNets() const;
+  int ComputeNumPins() const;
   const Cell& CellFromId(int cell_id) const;
   const Net& NetFromId(int net_id) const;
 
@@ -27,7 +31,6 @@ class Database {
   std::vector<Net> nets_;
 
   std::unordered_map<std::string, int> cell_id_from_cell_name_;
-  std::unordered_map<std::string, int> net_id_from_net_name_;
 };
 
 #endif
