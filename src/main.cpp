@@ -7,7 +7,10 @@ using namespace std;
 int main(int argc, char* argv[]) {
   ifstream input_file(argv[1]);
 
-  Partitioner partitioner(input_file);
+  Database database(input_file);
+  /* database.Print(); */
+
+  Partitioner partitioner(database);
   partitioner.PartitionCells();
 
   return 0;

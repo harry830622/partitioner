@@ -1,38 +1,30 @@
 #ifndef PARTITIONER_HPP
 #define PARTITIONER_HPP
 
-#include "./cell.hpp"
-#include "./net.hpp"
-#include "./partition.hpp"
-#include "./simple_parser.hpp"
+#include "./bucket_list.hpp"
+#include "./database.hpp"
 
-#include <unordered_map>
+#include <map>
 
 class Partitioner {
  public:
-  Partitioner(std::istream& input);
+  Partitioner(Database& database);
 
   void PartitionCells();
 
-  void Output(std::ostream& output);
-
  private:
-  int ComputeNumPins() const;
-  bool ArePartitionsBalancedAfterMove(const Partition& from,
-                                      const Partition& to) const;
+  bool ArePartitionsBalancedAfterMove(const BucketList& from_partition,
+                                      const BucketList& to_partition) const;
 
-  void Parse(std::istream& input);
-  void InitializePartitions();
-  void InitializeBucketLists();
+  void InitializeGains();
+  void UpdateGains(const std::vector<int>& gain_from_cell_id,
+                   const std::vector<int>& old_gain_from_cell_id);
+  void MoveCell(int cell_id);
+  void UnlockAllCells();
 
-  double balance_factor_;
-  std::vector<Partition> partitions_;
-  std::vector<Cell> cells_;
-  std::vector<Net> nets_;
-  std::unordered_map<std::string, int> cell_id_from_name_;
-  std::unordered_map<std::string, int> net_id_from_name_;
+  Database& database_;
 
-  std::vector<Partition> best_partitions_;
+  std::vector<BucketList> partitions_;
 };
 
 #endif

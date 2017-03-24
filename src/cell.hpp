@@ -14,21 +14,16 @@ class Cell {
   const std::string& Name() const;
   const std::vector<int>& NetIds() const;
   bool IsLocked() const;
-  int Gain() const;
 
   void ConnectNet(int net_id);
   void Lock();
   void Unlock();
-  void IncrementGain();
-  void DecrementGain();
-  void SetGain(int gain);
 
  private:
   std::string name_;
   std::vector<int> net_ids_;
 
   bool is_locked_;
-  int gain_;
 };
 
 #endif
