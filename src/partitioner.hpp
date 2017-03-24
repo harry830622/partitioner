@@ -15,10 +15,10 @@ class Partitioner {
  private:
   bool ArePartitionsBalancedAfterMove(const BucketList& from_partition,
                                       const BucketList& to_partition) const;
-  bool IsNetLocked(int net_id) const;
 
   void InitializeGains();
-  void UpdateGains(const std::vector<int>& gain_from_cell_id);
+  void UpdateGains(const std::vector<int>& gain_from_cell_id,
+                   const std::vector<int>& old_gain_from_cell_id);
   void MoveCell(int cell_id);
   void UnlockAllCells();
 

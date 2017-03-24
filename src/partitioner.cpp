@@ -33,10 +33,10 @@ void Partitioner::PartitionCells() {
 
   cout << "Start partitioning..." << endl;
 
-  vector<int> cell_ids = left_partition.CellIds();
-  unordered_set<int> left_partition_cell_ids(cell_ids.begin(), cell_ids.end());
-  cell_ids = right_partition.CellIds();
-  unordered_set<int> right_partition_cell_ids(cell_ids.begin(), cell_ids.end());
+  unordered_set<int> left_partition_cell_ids(left_partition.CellIds().begin(),
+                                             left_partition.CellIds().end());
+  unordered_set<int> right_partition_cell_ids(right_partition.CellIds().begin(),
+                                             right_partition.CellIds().end());
 
   int nth_iteration = 0;
   int max_partial_sum = 0;
@@ -116,8 +116,8 @@ void Partitioner::PartitionCells() {
 
 bool Partitioner::ArePartitionsBalancedAfterMove(
     const BucketList& from_partition, const BucketList& to_partition) const {
-  const int num_from_partition_cells = from_partition.CellIds().size();
-  const int num_to_partition_cells = to_partition.CellIds().size();
+  const int num_from_partition_cells = from_partition.NumCells();
+  const int num_to_partition_cells = to_partition.NumCells();
   const int num_all_cells = database_.NumCells();
   const double balance_factor = database_.BalanceFactor();
   if (num_from_partition_cells - 1 < (1 - balance_factor) / 2 * num_all_cells ||
@@ -126,29 +126,6 @@ bool Partitioner::ArePartitionsBalancedAfterMove(
   }
 
   return true;
-}
-
-bool Partitioner::IsNetLocked(int net_id) const {
-  const Net& net = database_.NetFromId(net_id);
-  const BucketList& left_partition = partitions_[0];
-  bool has_locked_cell_in_left_partition = false;
-  bool has_locked_cell_in_right_partition = false;
-  for (int net_cell_id : net.CellIds()) {
-    const Cell& net_cell = database_.CellFromId(net_cell_id);
-    if (net_cell.IsLocked()) {
-      if (left_partition.HasCell(net_cell_id)) {
-        has_locked_cell_in_left_partition = true;
-      } else {
-        has_locked_cell_in_right_partition = true;
-      }
-      if (has_locked_cell_in_left_partition &&
-          has_locked_cell_in_right_partition) {
-        return true;
-      }
-    }
-  }
-
-  return false;
 }
 
 void Partitioner::InitializeGains() {
@@ -186,16 +163,18 @@ void Partitioner::InitializeGains() {
   }
 }
 
-void Partitioner::UpdateGains(const vector<int>& gain_from_cell_id) {
+void Partitioner::UpdateGains(const vector<int>& gain_from_cell_id,
+                              const vector<int>& old_gain_from_cell_id) {
   BucketList& left_partition = partitions_[0];
   BucketList& right_partition = partitions_[1];
   for (int i = 0; i < gain_from_cell_id.size(); ++i) {
     const int cell_id = i;
-    const int gain = gain_from_cell_id[i];
+    const int gain = gain_from_cell_id.at(cell_id);
+    const int old_gain = old_gain_from_cell_id.at(cell_id);
     const Cell& cell = database_.CellFromId(cell_id);
-    BucketList& partition =
-        left_partition.HasCell(cell_id) ? left_partition : right_partition;
-    if (!cell.IsLocked()) {
+    if (gain != old_gain && !cell.IsLocked()) {
+      BucketList& partition =
+          left_partition.HasCell(cell_id) ? left_partition : right_partition;
       partition.UpdateCell(cell_id, gain);
     }
   }
@@ -207,18 +186,15 @@ void Partitioner::MoveCell(int cell_id) {
   BucketList& right_partition = partitions_[1];
 
   vector<int> gain_from_cell_id(num_all_cells);
-  vector<int> left_partition_cell_ids = left_partition.CellIds();
-  vector<int> right_partition_cell_ids = right_partition.CellIds();
-  for (int i = 0; i < left_partition_cell_ids.size(); ++i) {
-    const int left_partition_cell_id = left_partition_cell_ids[i];
+  for (int left_partition_cell_id : left_partition.CellIds()) {
     const int gain = left_partition.Gain(left_partition_cell_id);
     gain_from_cell_id.at(left_partition_cell_id) = gain;
   }
-  for (int i = 0; i < right_partition_cell_ids.size(); ++i) {
-    const int right_partition_cell_id = right_partition_cell_ids[i];
+  for (int right_partition_cell_id : right_partition.CellIds()) {
     const int gain = right_partition.Gain(right_partition_cell_id);
     gain_from_cell_id.at(right_partition_cell_id) = gain;
   }
+  vector<int> old_gain_from_cell_id(gain_from_cell_id);
 
   BucketList& from_partition =
       left_partition.HasCell(cell_id) ? left_partition : right_partition;
@@ -227,58 +203,48 @@ void Partitioner::MoveCell(int cell_id) {
   Cell& cell = database_.CellFromId(cell_id);
 
   for (int net_id : cell.NetIds()) {
-    if (IsNetLocked(net_id)) {
-      continue;
-    }
     const int num_to_partition_cells = to_partition.NumNetCells(net_id);
     const Net& net = database_.NetFromId(net_id);
     if (num_to_partition_cells == 0) {
       for (int net_cell_id : net.CellIds()) {
         const Cell& net_cell = database_.CellFromId(net_cell_id);
-        if (net_cell.IsLocked() || net_cell_id == cell_id) {
-          continue;
+        if (!net_cell.IsLocked() && net_cell_id != cell_id) {
+          ++gain_from_cell_id.at(net_cell_id);
         }
-        ++gain_from_cell_id.at(net_cell_id);
       }
     } else if (num_to_partition_cells == 1) {
-      for (int net_cell_id : net.CellIds()) {
-        if (to_partition.HasCell(net_cell_id)) {
-          --gain_from_cell_id.at(net_cell_id);
-          break;
-        }
+      const int net_cell_id = to_partition.NetCellIds(net_id).front();
+      const Cell& net_cell = database_.CellFromId(net_cell_id);
+      if (!net_cell.IsLocked()) {
+        --gain_from_cell_id.at(net_cell_id);
       }
     }
   }
 
-  from_partition.DeleteCell(cell_id, cell.NetIds());
+  from_partition.DeleteCell(cell_id);
   cell.Lock();
-  to_partition.InsertCell(cell_id, cell.NetIds(), 0);
+  to_partition.InsertCell(cell_id, cell.NetIds());
 
   for (int net_id : cell.NetIds()) {
-    if (IsNetLocked(net_id)) {
-      continue;
-    }
     const int num_from_partition_cells = from_partition.NumNetCells(net_id);
     const Net& net = database_.NetFromId(net_id);
     if (num_from_partition_cells == 0) {
       for (int net_cell_id : net.CellIds()) {
         const Cell& net_cell = database_.CellFromId(net_cell_id);
-        if (net_cell.IsLocked() || net_cell_id == cell_id) {
-          continue;
+        if (!net_cell.IsLocked() && net_cell_id != cell_id) {
+          --gain_from_cell_id.at(net_cell_id);
         }
-        --gain_from_cell_id.at(net_cell_id);
       }
     } else if (num_from_partition_cells == 1) {
-      for (int net_cell_id : net.CellIds()) {
-        if (from_partition.HasCell(net_cell_id)) {
-          ++gain_from_cell_id.at(net_cell_id);
-          break;
-        }
+      const int net_cell_id = from_partition.NetCellIds(net_id).front();
+      const Cell& net_cell = database_.CellFromId(net_cell_id);
+      if (!net_cell.IsLocked()) {
+        ++gain_from_cell_id.at(net_cell_id);
       }
     }
   }
 
-  UpdateGains(gain_from_cell_id);
+  UpdateGains(gain_from_cell_id, old_gain_from_cell_id);
 }
 
 void Partitioner::UnlockAllCells() {
