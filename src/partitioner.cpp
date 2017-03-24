@@ -24,6 +24,32 @@ Partitioner::Partitioner(Database& database)
   InitializeGains();
 }
 
+void Partitioner::Output(std::ostream& os) const {
+  const BucketList& left_partition = partitions_[0];
+  const BucketList& right_partition = partitions_[1];
+
+  int cut_size = 0;
+  for (int i = 0; i < database_.NumNets(); ++i) {
+    const int net_id = i;
+    if (left_partition.NumNetCells(net_id) != 0 &&
+        right_partition.NumNetCells(net_id) != 0 ) {
+      ++cut_size;
+    }
+  }
+
+  os << "Cutsize = " << cut_size << endl;
+  os << "G1 " << left_partition.NumCells() << endl;
+  for (int cell_id : left_partition.CellIds()) {
+    os << database_.CellFromId(cell_id).Name() << " ";
+  }
+  os << ";" << endl;
+  os << "G2 " << right_partition.NumCells() << endl;
+  for (int cell_id : right_partition.CellIds()) {
+    os << database_.CellFromId(cell_id).Name() << " ";
+  }
+  os << ";" << endl;
+}
+
 void Partitioner::PartitionCells() {
   const int num_all_cells = database_.NumCells();
   const int num_all_nets = database_.NumNets();

@@ -13,5 +13,8 @@ int main(int argc, char* argv[]) {
   Partitioner partitioner(database);
   partitioner.PartitionCells();
 
+  ofstream output_file(argv[2]);
+  partitioner.Output(output_file);
+
   return 0;
 }

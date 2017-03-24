@@ -10,6 +10,8 @@ class Partitioner {
  public:
   Partitioner(Database& database);
 
+  void Output(std::ostream& os = std::cout) const;
+
   void PartitionCells();
 
  private:
