@@ -1,4 +1,4 @@
-#include "./database.hpp"
+#include "./partitioner.hpp"
 
 #include <fstream>
 
@@ -9,6 +9,9 @@ int main(int argc, char* argv[]) {
 
   Database database(input_file);
   /* database.Print(); */
+
+  Partitioner partitioner(database);
+  partitioner.PartitionCells();
 
   return 0;
 }
