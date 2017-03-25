@@ -62,6 +62,15 @@ int BucketList::MaxGainCellId() const {
   return CellIdsFromGain(max_gain_).front();
 }
 
+void BucketList::Reset() {
+  max_gain_ = invalid_gain_;
+  cell_ids_.clear();
+  cell_ids_from_offsetted_gain_.assign(size_, list<int>());
+  cell_ids_from_net_id_.assign(size_, list<int>());
+  gain_from_cell_id_.assign(gain_from_cell_id_.size(), 0);
+  num_free_cells_from_offsetted_gain_.assign(size_, 0);
+}
+
 void BucketList::InitializeCell(int cell_id, const std::vector<int>& net_ids) {
   cell_ids_.push_front(cell_id);
   iterator_from_cell_id_.at(cell_id) = cell_ids_.begin();

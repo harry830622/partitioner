@@ -12,6 +12,8 @@ class Partitioner {
 
   void Output(std::ostream& os = std::cout) const;
 
+  int ComputeCutSize() const;
+
   void PartitionCells();
 
  private:

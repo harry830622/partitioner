@@ -21,6 +21,7 @@ class BucketList {
   int MaxGain() const;
   int MaxGainCellId() const;
 
+  void Reset();
   void InitializeCell(int cell_id, const std::vector<int>& net_ids);
   void InsertCell(int cell_id, const std::vector<int>& net_ids);
   void DeleteCell(int cell_id);
