@@ -75,7 +75,7 @@ void Partitioner::PartitionCells() {
   int max_partial_sum = 0;
   do {
     ++nth_iteration;
-    cout << nth_iteration << " th iteration" << endl;
+    cout << nth_iteration << "th\titeration...";
 
     vector<int> moved_cell_ids(num_all_cells - 1, -1);
     int partial_sum = 0;
@@ -127,11 +127,11 @@ void Partitioner::PartitionCells() {
     }
     InitializeGains();
 
-    cout << "Max partial sum: " << max_partial_sum << endl;
-    /* cout << "Cut size: " << ComputeCutSize() << endl; */
+    cout << "\tMax partial sum: " << max_partial_sum << endl;
 
     UnlockAllCells();
   } while (max_partial_sum > 0);
+  cout << "Partitioning finished" << endl;
 }
 
 bool Partitioner::ArePartitionsBalancedAfterMove(
