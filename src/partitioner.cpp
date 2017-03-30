@@ -66,10 +66,10 @@ void Partitioner::PartitionCells() {
 
   cout << "Start partitioning..." << endl;
 
-  unordered_set<int> left_partition_cell_ids(left_partition.CellIds().begin(),
-                                             left_partition.CellIds().end());
-  unordered_set<int> right_partition_cell_ids(right_partition.CellIds().begin(),
-                                              right_partition.CellIds().end());
+  vector<bool> is_in_left_partition(num_all_cells, false);
+  for (int cell_id : left_partition.CellIds()) {
+    is_in_left_partition.at(cell_id) = true;
+  }
 
   int nth_iteration = 0;
   int max_partial_sum = 0;
@@ -107,23 +107,18 @@ void Partitioner::PartitionCells() {
 
     for (int i = 0; i <= max_partial_sum_index; ++i) {
       const int cell_id = moved_cell_ids.at(i);
-      if (left_partition_cell_ids.count(cell_id) == 1) {
-        left_partition_cell_ids.erase(cell_id);
-        right_partition_cell_ids.insert(cell_id);
-      } else {
-        right_partition_cell_ids.erase(cell_id);
-        left_partition_cell_ids.insert(cell_id);
-      }
+      is_in_left_partition.at(cell_id) = !is_in_left_partition.at(cell_id);
     }
     left_partition = BucketList(num_all_cells, num_all_nets, num_all_pins);
     right_partition = BucketList(num_all_cells, num_all_nets, num_all_pins);
-    for (int cell_id : left_partition_cell_ids) {
+    for (int i = 0; i < is_in_left_partition.size(); ++i) {
+      const int cell_id = i;
       const Cell& cell = database_.CellFromId(cell_id);
-      left_partition.InitializeCell(cell_id, cell.NetIds());
-    }
-    for (int cell_id : right_partition_cell_ids) {
-      const Cell& cell = database_.CellFromId(cell_id);
-      right_partition.InitializeCell(cell_id, cell.NetIds());
+      if (is_in_left_partition[i]) {
+        left_partition.InitializeCell(cell_id, cell.NetIds());
+      } else {
+        right_partition.InitializeCell(cell_id, cell.NetIds());
+      }
     }
     InitializeGains();
 
@@ -153,7 +148,7 @@ void Partitioner::InitializeGains() {
   const int initial_gain = 0;
   BucketList& left_partition = partitions_[0];
   BucketList& right_partition = partitions_[1];
-  /* vector<int> gain_from_cell_id(num_all_cells, initial_gain); */
+  vector<int> gain_from_cell_id(num_all_cells, initial_gain);
   for (int i = 0; i < num_all_cells; ++i) {
     const int cell_id = i;
     const Cell& cell = database_.CellFromId(cell_id);
@@ -161,31 +156,27 @@ void Partitioner::InitializeGains() {
         left_partition.HasCell(cell_id) ? left_partition : right_partition;
     BucketList& to_partition =
         left_partition.HasCell(cell_id) ? right_partition : left_partition;
-    int gain = initial_gain;
     for (int net_id : cell.NetIds()) {
       const int num_from_partition_cells = from_partition.NumNetCells(net_id);
       const int num_to_partition_cells = to_partition.NumNetCells(net_id);
       if (num_from_partition_cells == 1) {
-        /* ++gain_from_cell_id.at(cell_id); */
-        ++gain;
+        ++gain_from_cell_id.at(cell_id);
       } else if (num_to_partition_cells == 0) {
-        /* --gain_from_cell_id.at(cell_id); */
-        --gain;
+        --gain_from_cell_id.at(cell_id);
       }
     }
-    if (gain != 0) {
-      from_partition.UpdateCell(cell_id, gain);
+  }
+  for (int i = 0; i < gain_from_cell_id.size(); ++i) {
+    const int cell_id = i;
+    const int gain = gain_from_cell_id.at(cell_id);
+    if (gain != initial_gain) {
+      if (left_partition.HasCell(cell_id)) {
+        left_partition.UpdateCell(cell_id, gain);
+      } else {
+        right_partition.UpdateCell(cell_id, gain);
+      }
     }
   }
-  /* for (int i = 0; i < gain_from_cell_id.size(); ++i) { */
-  /*   const int cell_id = i; */
-  /*   const int gain = gain_from_cell_id.at(cell_id); */
-  /*   if (left_partition.HasCell(cell_id)) { */
-  /*     left_partition.UpdateCell(cell_id, gain); */
-  /*   } else { */
-  /*     right_partition.UpdateCell(cell_id, gain); */
-  /*   } */
-  /* } */
 }
 
 void Partitioner::UpdateGains(const vector<int>& gain_from_cell_id,
