@@ -1,7 +1,5 @@
 #include "./partitioner.hpp"
 
-#include <unordered_set>
-
 using namespace std;
 
 Partitioner::Partitioner(Database& database)
@@ -66,9 +64,9 @@ void Partitioner::PartitionCells() {
 
   cout << "Start partitioning..." << endl;
 
-  vector<bool> is_in_left_partition(num_all_cells, false);
+  vector<bool> is_cell_in_left_partition_from_cell_id(num_all_cells, false);
   for (int cell_id : left_partition.CellIds()) {
-    is_in_left_partition.at(cell_id) = true;
+    is_cell_in_left_partition_from_cell_id.at(cell_id) = true;
   }
 
   int nth_iteration = 0;
@@ -83,17 +81,38 @@ void Partitioner::PartitionCells() {
     max_partial_sum = -1 * num_all_pins - 1;
     int max_partial_sum_index = -1;
 
+    bool is_previous_cell_moved_to_left_partition = false;
     for (int i = 0; i < num_all_cells - 1; ++i) {
+      const bool is_cell_moved_to_left_partition = [&]() {
+        if (right_partition.AreAllCellsLocked()) {
+          return false;
+        }
+        if (left_partition.AreAllCellsLocked()) {
+          return true;
+        }
+        if (!ArePartitionsBalancedAfterMove(right_partition, left_partition)) {
+          return false;
+        }
+        if (!ArePartitionsBalancedAfterMove(left_partition, right_partition)) {
+          return true;
+        }
+        if (is_previous_cell_moved_to_left_partition) {
+          return true;
+        }
+        return false;
+      }();
+
       int cell_id = -1;
       int gain;
-      if (ArePartitionsBalancedAfterMove(left_partition, right_partition) &&
-          !left_partition.AreAllCellsLocked()) {
-        cell_id = left_partition.MaxGainCellId();
-        gain = left_partition.MaxGain();
-      } else {
+      if (is_cell_moved_to_left_partition) {
         cell_id = right_partition.MaxGainCellId();
         gain = right_partition.MaxGain();
+      } else {
+        cell_id = left_partition.MaxGainCellId();
+        gain = left_partition.MaxGain();
       }
+      is_previous_cell_moved_to_left_partition =
+          is_cell_moved_to_left_partition;
 
       moved_cell_ids[i] = cell_id;
       partial_sum += gain;
@@ -102,19 +121,24 @@ void Partitioner::PartitionCells() {
         max_partial_sum_index = i;
       }
 
+      /* const Cell& cell = database_.CellFromId(cell_id); */
+      /* cout << "Select cell: " << cell.Name() << " with max gain: " << gain */
+      /*      << " is_locked: " << cell.IsLocked() << endl; */
+
       MoveCell(cell_id);
     }
 
     for (int i = 0; i <= max_partial_sum_index; ++i) {
       const int cell_id = moved_cell_ids.at(i);
-      is_in_left_partition.at(cell_id) = !is_in_left_partition.at(cell_id);
+      is_cell_in_left_partition_from_cell_id.at(cell_id) =
+          !is_cell_in_left_partition_from_cell_id.at(cell_id);
     }
     left_partition = BucketList(num_all_cells, num_all_nets, num_all_pins);
     right_partition = BucketList(num_all_cells, num_all_nets, num_all_pins);
-    for (int i = 0; i < is_in_left_partition.size(); ++i) {
+    for (int i = 0; i < is_cell_in_left_partition_from_cell_id.size(); ++i) {
       const int cell_id = i;
       const Cell& cell = database_.CellFromId(cell_id);
-      if (is_in_left_partition[i]) {
+      if (is_cell_in_left_partition_from_cell_id.at(cell_id)) {
         left_partition.InitializeCell(cell_id, cell.NetIds());
       } else {
         right_partition.InitializeCell(cell_id, cell.NetIds());
@@ -204,6 +228,21 @@ void Partitioner::MoveCell(int cell_id) {
       left_partition.HasCell(cell_id) ? left_partition : right_partition;
   BucketList& to_partition =
       left_partition.HasCell(cell_id) ? right_partition : left_partition;
+
+  /* const int num_all_cells = database_.NumCells(); */
+  /* vector<int> old_gain_from_cell_id(num_all_cells, 0); */
+  /* for (int i = 0; i < old_gain_from_cell_id.size(); ++i) { */
+  /*   const int id = i; */
+  /*   const int gain = [&]() { */
+  /*     if (left_partition.HasCell(id)) { */
+  /*       return left_partition.Gain(id); */
+  /*     } */
+  /*     return right_partition.Gain(id); */
+  /*   }(); */
+  /*   old_gain_from_cell_id.at(id) = gain; */
+  /* } */
+  /* vector<int> gain_from_cell_id(old_gain_from_cell_id); */
+
   Cell& cell = database_.CellFromId(cell_id);
 
   for (int net_id : cell.NetIds()) {
@@ -215,6 +254,7 @@ void Partitioner::MoveCell(int cell_id) {
         if (!net_cell.IsLocked() && net_cell_id != cell_id) {
           const int gain = from_partition.Gain(net_cell_id);
           from_partition.UpdateCell(net_cell_id, gain + 1);
+          /* ++gain_from_cell_id.at(net_cell_id); */
         }
       }
     } else if (num_to_partition_cells == 1) {
@@ -223,6 +263,7 @@ void Partitioner::MoveCell(int cell_id) {
       if (!net_cell.IsLocked()) {
         const int gain = to_partition.Gain(net_cell_id);
         to_partition.UpdateCell(net_cell_id, gain - 1);
+        /* --gain_from_cell_id.at(net_cell_id); */
       }
     }
   }
@@ -240,6 +281,7 @@ void Partitioner::MoveCell(int cell_id) {
         if (!net_cell.IsLocked() && net_cell_id != cell_id) {
           const int gain = to_partition.Gain(net_cell_id);
           to_partition.UpdateCell(net_cell_id, gain - 1);
+          /* --gain_from_cell_id.at(net_cell_id); */
         }
       }
     } else if (num_from_partition_cells == 1) {
@@ -248,9 +290,12 @@ void Partitioner::MoveCell(int cell_id) {
       if (!net_cell.IsLocked()) {
         const int gain = from_partition.Gain(net_cell_id);
         from_partition.UpdateCell(net_cell_id, gain + 1);
+        /* ++gain_from_cell_id.at(net_cell_id); */
       }
     }
   }
+
+  /* UpdateGains(old_gain_from_cell_id, gain_from_cell_id); */
 }
 
 void Partitioner::UnlockAllCells() {
