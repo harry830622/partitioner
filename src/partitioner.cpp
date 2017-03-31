@@ -1,5 +1,7 @@
 #include "./partitioner.hpp"
 
+#include <algorithm>
+
 using namespace std;
 
 Partitioner::Partitioner(Database& database)
@@ -20,6 +22,7 @@ Partitioner::Partitioner(Database& database)
     right_partition.InitializeCell(cell_id, cell.NetIds());
   }
   InitializeGains();
+  /* InitializeGainsByCLIP(); */
 }
 
 void Partitioner::Output(std::ostream& os) const {
@@ -145,6 +148,7 @@ void Partitioner::PartitionCells() {
       }
     }
     InitializeGains();
+    /* InitializeGainsByCLIP(); */
 
     cout << "\tMax partial sum: " << max_partial_sum << endl;
 
@@ -199,6 +203,49 @@ void Partitioner::InitializeGains() {
       } else {
         right_partition.UpdateCell(cell_id, gain);
       }
+    }
+  }
+}
+
+void Partitioner::InitializeGainsByCLIP() {
+  const int num_all_cells = database_.NumCells();
+  const int initial_gain = 0;
+  BucketList& left_partition = partitions_[0];
+  BucketList& right_partition = partitions_[1];
+  vector<int> gain_from_cell_id(num_all_cells, initial_gain);
+  for (int i = 0; i < num_all_cells; ++i) {
+    const int cell_id = i;
+    const Cell& cell = database_.CellFromId(cell_id);
+    BucketList& from_partition =
+        left_partition.HasCell(cell_id) ? left_partition : right_partition;
+    BucketList& to_partition =
+        left_partition.HasCell(cell_id) ? right_partition : left_partition;
+    for (int net_id : cell.NetIds()) {
+      const int num_from_partition_cells = from_partition.NumNetCells(net_id);
+      const int num_to_partition_cells = to_partition.NumNetCells(net_id);
+      if (num_from_partition_cells == 1) {
+        ++gain_from_cell_id.at(cell_id);
+      } else if (num_to_partition_cells == 0) {
+        --gain_from_cell_id.at(cell_id);
+      }
+    }
+  }
+  vector<pair<int, int>> cell_id_with_gain_sorted_by_gain;
+  for (int i = 0; i < gain_from_cell_id.size(); ++i) {
+    cell_id_with_gain_sorted_by_gain.push_back({i, gain_from_cell_id[i]});
+  }
+  sort(cell_id_with_gain_sorted_by_gain.begin(),
+       cell_id_with_gain_sorted_by_gain.end(),
+       [](const pair<int, int>& cell_id_with_gain_a,
+          const pair<int, int>& cell_id_with_gain_b) {
+         return cell_id_with_gain_a.second < cell_id_with_gain_b.second;
+       });
+  for (int i = 0; i < cell_id_with_gain_sorted_by_gain.size(); ++i) {
+    const int cell_id = cell_id_with_gain_sorted_by_gain[i].first;
+    if (left_partition.HasCell(cell_id)) {
+      left_partition.UpdateCell(cell_id, 0);
+    } else {
+      right_partition.UpdateCell(cell_id, 0);
     }
   }
 }

@@ -21,6 +21,7 @@ class Partitioner {
                                       const BucketList& to_partition) const;
 
   void InitializeGains();
+  void InitializeGainsByCLIP();
   void UpdateGains(const std::vector<int>& gain_from_cell_id,
                    const std::vector<int>& old_gain_from_cell_id);
   void MoveCell(int cell_id);
