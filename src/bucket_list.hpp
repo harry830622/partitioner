@@ -3,6 +3,7 @@
 
 #include <iostream>
 #include <list>
+#include <set>
 #include <vector>
 
 class BucketList {
@@ -30,10 +31,13 @@ class BucketList {
  private:
   static int invalid_gain_;
 
-  int NumFreeCellsFromGain(int gain) const;
+  std::set<int>::iterator NonEmptyIteratorFromGain(int gain) const;
   const std::list<int>& CellIdsFromGain(int gain) const;
+  int NumFreeCellsFromGain(int gain) const;
 
+  std::set<int>::iterator& NonEmptyIteratorFromGain(int gain);
   std::list<int>& CellIdsFromGain(int gain);
+  int& NumFreeCellsFromGain(int gain);
   void IncrementNumFreeCellsFromGain(int gain);
   void DecrementNumFreeCellsFromGain(int gain);
   void InsertCell(int cell_id, const std::vector<int>& net_ids, int gain,
@@ -43,6 +47,8 @@ class BucketList {
   int offset_;
   int size_;
   int max_gain_;
+  std::set<int> non_empty_gains_;
+  std::vector<std::set<int>::iterator> non_empty_iterator_from_offsetted_gain_;
   std::list<int> cell_ids_;
   std::vector<std::list<int>::iterator> iterator_from_cell_id_;
   std::vector<std::list<int>> cell_ids_from_offsetted_gain_;
