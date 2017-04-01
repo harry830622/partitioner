@@ -12,6 +12,7 @@ class Cell {
   void Print(std::ostream& os = std::cout, int num_spaces = 0) const;
 
   const std::string& Name() const;
+  int NumNets() const;
   const std::vector<int>& NetIds() const;
   bool IsLocked() const;
 

@@ -14,6 +14,8 @@ void Net::Print(ostream& os, int num_spaces) const {
 
 const string& Net::Name() const { return name_; }
 
+int Net::NumCells() const { return cell_ids_.size(); }
+
 const vector<int>& Net::CellIds() const { return cell_ids_; }
 
 void Net::ConnectCell(int cell_id) { cell_ids_.push_back(cell_id); }

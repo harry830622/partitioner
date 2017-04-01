@@ -29,7 +29,7 @@ int Database::NumNets() const { return nets_.size(); }
 int Database::ComputeNumPins() const {
   int num_pins = 0;
   for (const Net& net : nets_) {
-    num_pins += net.CellIds().size();
+    num_pins += net.NumCells();
   }
 
   return num_pins;
@@ -88,7 +88,8 @@ void Database::Parse(istream& input) {
 
         if (find(net_cell_ids.begin(), net_cell_ids.end(), cell_id) !=
             net_cell_ids.end()) {
-          /* cout << NetFromId(net_id).Name() << " connects to duplicated cells" */
+          /* cout << NetFromId(net_id).Name() << " connects to duplicated cells"
+           */
           /*      << endl; */
           continue;
         }

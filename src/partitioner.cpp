@@ -16,7 +16,7 @@ Partitioner::Partitioner(Database& database)
   }
   sort(nets_sorted_by_num_cells.begin(), nets_sorted_by_num_cells.end(),
        [](const Net& net_a, const Net& net_b) {
-         return net_a.CellIds().size() > net_b.CellIds().size();
+         return net_a.NumCells() > net_b.NumCells();
        });
   BucketList& left_partition = partitions_[0];
   BucketList& right_partition = partitions_[1];
@@ -24,7 +24,7 @@ Partitioner::Partitioner(Database& database)
   const double balance_factor = database_.BalanceFactor();
   const int upper_bound = (1 + balance_factor) / 2 * num_all_cells;
   for (const Net& net : nets_sorted_by_num_cells) {
-    if (left_partition.CellIds().size() + net.CellIds().size() <= upper_bound) {
+    if (left_partition.NumCells() + net.NumCells() <= upper_bound) {
       for (int net_cell_id : net.CellIds()) {
         const Cell& net_cell = database_.CellFromId(net_cell_id);
         if (!left_partition.HasCell(net_cell_id) &&
@@ -56,7 +56,7 @@ Partitioner::Partitioner(Database& database)
   /* InitializeGainsByCLIP(); */
 }
 
-void Partitioner::Output(std::ostream& os) const {
+void Partitioner::Output(ostream& os) const {
   const BucketList& left_partition = partitions_[0];
   const BucketList& right_partition = partitions_[1];
 

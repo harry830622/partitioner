@@ -12,6 +12,7 @@ class Net {
   void Print(std::ostream& os = std::cout, int num_spaces = 0) const;
 
   const std::string& Name() const;
+  int NumCells() const;
   const std::vector<int>& CellIds() const;
 
   void ConnectCell(int cell_id);

@@ -15,6 +15,8 @@ void Cell::Print(ostream& os, int num_spaces) const {
 
 const string& Cell::Name() const { return name_; }
 
+int Cell::NumNets() const { return net_ids_.size(); }
+
 const vector<int>& Cell::NetIds() const { return net_ids_; }
 
 bool Cell::IsLocked() const { return is_locked_; }
