@@ -8,19 +8,50 @@ Partitioner::Partitioner(Database& database)
     : database_(database),
       partitions_(2, BucketList(database.NumCells(), database.NumNets(),
                                 database.ComputeNumPins())) {
-  const int num_all_cells = database_.NumCells();
+  const int num_all_nets = database_.NumNets();
+  vector<Net> nets_sorted_by_num_cells;
+  for (int i = 0; i < num_all_nets; ++i) {
+    const int net_id = i;
+    nets_sorted_by_num_cells.push_back(database_.NetFromId(net_id));
+  }
+  sort(nets_sorted_by_num_cells.begin(), nets_sorted_by_num_cells.end(),
+       [](const Net& net_a, const Net& net_b) {
+         return net_a.CellIds().size() > net_b.CellIds().size();
+       });
   BucketList& left_partition = partitions_[0];
   BucketList& right_partition = partitions_[1];
-  for (int i = 0; i < num_all_cells / 2; ++i) {
-    const int cell_id = i;
-    const Cell& cell = database_.CellFromId(cell_id);
-    left_partition.InitializeCell(cell_id, cell.NetIds());
+  const int num_all_cells = database_.NumCells();
+  const double balance_factor = database_.BalanceFactor();
+  const int upper_bound = (1 + balance_factor) / 2 * num_all_cells;
+  for (const Net& net : nets_sorted_by_num_cells) {
+    if (left_partition.CellIds().size() + net.CellIds().size() <= upper_bound) {
+      for (int net_cell_id : net.CellIds()) {
+        const Cell& net_cell = database_.CellFromId(net_cell_id);
+        if (!left_partition.HasCell(net_cell_id) &&
+            !right_partition.HasCell(net_cell_id)) {
+          left_partition.InitializeCell(net_cell_id, net_cell.NetIds());
+        }
+      }
+    } else {
+      for (int net_cell_id : net.CellIds()) {
+        const Cell& net_cell = database_.CellFromId(net_cell_id);
+        if (!left_partition.HasCell(net_cell_id) &&
+            !right_partition.HasCell(net_cell_id)) {
+          right_partition.InitializeCell(net_cell_id, net_cell.NetIds());
+        }
+      }
+    }
   }
-  for (int i = num_all_cells / 2; i < num_all_cells; ++i) {
-    const int cell_id = i;
-    const Cell& cell = database_.CellFromId(cell_id);
-    right_partition.InitializeCell(cell_id, cell.NetIds());
-  }
+  /* for (int i = 0; i < num_all_cells / 2; ++i) { */
+  /*   const int cell_id = i; */
+  /*   const Cell& cell = database_.CellFromId(cell_id); */
+  /*   left_partition.InitializeCell(cell_id, cell.NetIds()); */
+  /* } */
+  /* for (int i = num_all_cells / 2; i < num_all_cells; ++i) { */
+  /*   const int cell_id = i; */
+  /*   const Cell& cell = database_.CellFromId(cell_id); */
+  /*   right_partition.InitializeCell(cell_id, cell.NetIds()); */
+  /* } */
   InitializeGains();
   /* InitializeGainsByCLIP(); */
 }
